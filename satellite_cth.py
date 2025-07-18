@@ -8,7 +8,8 @@ import os
 from datetime import datetime, timedelta
 
 def parse_iso8601_z(ts: str) -> datetime:
-    """Parses an ISO 8601 UTC timestamp like '2024-07-18T12:34:56Z'."""
+    # Remove any prefix before the actual timestamp
+    ts = ts.split("/")[-1]
     return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
 
 def get_cloud_top_height(lat: float, lon: float, key: str, secret: str, *, hours_back: int = 2) -> float | None:
