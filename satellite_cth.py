@@ -22,12 +22,12 @@ def get_cloud_top_height(lat: float, lon: float, key: str, secret: str, *, hours
     # 2 · Get most recent product in the time window
     now = datetime.utcnow()
     products = list(coll.search(dtstart=now - timedelta(hours=hours_back), dtend=now))
-    print("Available metadata keys:", list(products[0].metadata.keys()))
+    print(products[0].metadata["properties"].keys())
     if not products:
         return None
 
     # Sort products by 'endposition' timestamp from metadata
-    product = max(products, key=lambda p: parse_iso8601_z(p.metadata["endposition"]))
+    product = max(products, key=lambda p: parse_iso8601_z(p.metadata["properties"]["endTime"]))
     print(f"Using product from: {product.metadata['beginposition']} to {product.metadata['endposition']}")
 
     # 3 · Download ZIP to a temporary directory
