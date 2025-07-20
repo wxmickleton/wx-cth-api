@@ -8,9 +8,7 @@ import os
 from datetime import datetime, timedelta
 
 def parse_iso8601_z(ts: str) -> datetime:
-    # Remove any prefix before the actual timestamp
-    ts = ts.split("/")[-1]
-    return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
+    return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 def get_cloud_top_height(lat: float, lon: float, key: str, secret: str, *, hours_back: int = 2) -> float | None:
     """Return cloud‑top height (m) at the nearest pixel to *lat*, *lon*."""
