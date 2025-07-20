@@ -1,66 +1,37 @@
-import eumdac
-import xarray as xr
+import requests
+import rasterio
 import numpy as np
 import tempfile
-import shutil
-import zipfile
-import os
-from datetime import datetime, timedelta
 
-def parse_iso8601_z(ts: str) -> datetime:
-    return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ")
+def get_cloud_top_height(lat, lon):
+    bbox_size = 0.05
+    width = 64
+    height = 64
 
-def get_cloud_top_height(lat: float, lon: float, key: str, secret: str, *, hours_back: int = 2) -> float | None:
-    """Return cloud‑top height (m) at the nearest pixel to *lat*, *lon*."""
+    south = lat - bbox_size
+    north = lat + bbox_size
+    west = lon - bbox_size
+    east = lon + bbox_size
 
-    # 1 · Authenticate and open collection
-    token = eumdac.AccessToken((key, secret))
-    store = eumdac.DataStore(token)
-    coll = store.get_collection("EO:EUM:DAT:MSG:CTH")
+    wms_url = (
+        "https://view.eumetsat.int/geoserver/ows?"
+        f"service=WMS&request=GetMap&version=1.3.0"
+        f"&layers=msg_fes:cth"
+        f"&styles=&format=image/geotiff"
+        f"&crs=EPSG:4326"
+        f"&bbox={south},{west},{north},{east}"
+        f"&width={width}&height={height}"
+    )
 
-    # 2 · Get most recent product in the time window
-    now = datetime.utcnow()
-    products = list(coll.search(dtstart=now - timedelta(hours=hours_back), dtend=now))
-    print(products[0].metadata["properties"].keys())
-    if not products:
-        return None
-    
-    product = max(products, key=lambda p: parse_iso8601_z(p.metadata["properties"]["updated"]))
-    
-    # 3 · Download ZIP to a temporary directory
-    with tempfile.TemporaryDirectory() as tmp:
-        zip_file = os.path.join(tmp, "cth.zip")
-        with product.open() as remote, open(zip_file, "wb") as local:
-            shutil.copyfileobj(remote, local)
+    response = requests.get(wms_url)
+    response.raise_for_status()
 
-        # 4 · Extract GRIB file
-        with zipfile.ZipFile(zip_file) as z:
-            z.extractall(tmp)
-        grib_path = next(os.path.join(tmp, f) for f in os.listdir(tmp) if f.endswith(".grb"))
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".tif") as tmp:
+        tmp.write(response.content)
+        tmp.flush()
 
-        # 5 · Open GRIB file and find nearest pixel
-        ds = xr.open_dataset(grib_path, engine="cfgrib")
-        lat_arr = ds.latitude.values
-        lon_arr = ds.longitude.values
-        cth_arr = ds.ctoph.values
-
-        idx = np.argmin((lat_arr - lat) ** 2 + (lon_arr - lon) ** 2)
-        return round(float(cth_arr[idx]), 2)
-
-# ── Simple CLI test ───────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    import argparse
-    import getpass
-
-    parser = argparse.ArgumentParser(description="Fetch Cloud‑Top Height at a point")
-    parser.add_argument("lat", type=float, help="Latitude in degrees")
-    parser.add_argument("lon", type=float, help="Longitude in degrees")
-    parser.add_argument("--key", required=False, help="EUMETSAT API key")
-    parser.add_argument("--secret", required=False, help="EUMETSAT API secret")
-    args = parser.parse_args()
-
-    key = args.key or getpass.getpass("API key: ")
-    secret = args.secret or getpass.getpass("API secret: ")
-
-    value = get_cloud_top_height(args.lat, args.lon, key, secret)
-    print("Cloud‑Top Height (m):", value)
+        with rasterio.open(tmp.name) as src:
+            data = src.read(1)
+            row, col = src.index(lon, lat)
+            value = data[row, col]
+            return float(value * 80) if np.isfinite(value) else None
