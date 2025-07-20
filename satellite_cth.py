@@ -26,10 +26,10 @@ def get_cloud_top_height(lat: float, lon: float, key: str, secret: str, *, hours
     print(products[0].metadata["properties"].keys())
     if not products:
         return None
-
-    product = max(products, key=lambda p: parse_iso8601_z(p.metadata["properties"]["updated"]))
+    
     print(products[0].metadata["properties"]["date"])
     print(products[0].metadata["properties"]["updated"])
+    product = max(products, key=lambda p: parse_iso8601_z(p.metadata["properties"]["date"]))
     
     # 3 · Download ZIP to a temporary directory
     with tempfile.TemporaryDirectory() as tmp:
