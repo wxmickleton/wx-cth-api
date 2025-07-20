@@ -27,7 +27,7 @@ def get_cloud_top_height(lat: float, lon: float, key: str, secret: str, *, hours
     if not products:
         return None
 
-    product = max(products, key=lambda p: parse_iso8601_z(p.metadata["properties"]["date"]))
+    product = max(products, key=lambda p: parse_iso8601_z(p.metadata["properties"]["updated"]))
     print(products[0].metadata["properties"]["date"])
     print(products[0].metadata["properties"]["updated"])
     
