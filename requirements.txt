@@ -1,6 +1,3 @@
-fastapi
-uvicorn
-eumdac
-xarray
-cfgrib
+requests
+rasterio
 numpy
