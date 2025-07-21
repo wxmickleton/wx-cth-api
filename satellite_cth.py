@@ -33,6 +33,25 @@ def get_cloud_top_height(lat, lon):
         with rasterio.open(tmp.name) as src:
             data = src.read(1)
             valid_data = data[np.isfinite(data)]
+
             if valid_data.size == 0:
-                return None  # No valid data
-            return float(np.mean(valid_data) * 80)  # Scale factor of 80
+                return None
+            scaled_data = valid_data.astype(np.float64) * 80
+            print("Valid Cloud Top Heights (scaled, one per line):")
+            return float(np.max(scaled_data))
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Fetch Cloud Top Height (CTH)")
+    parser.add_argument("lat", type=float, help="Latitude")
+    parser.add_argument("lon", type=float, help="Longitude")
+
+    args = parser.parse_args()
+    cth = get_cloud_top_height(args.lat, args.lon)
+    
+    if cth is not None:
+        print(f"Cloud Top Height: {cth:.2f} meters")
+    else:
+        print("No valid cloud top height data.")
