@@ -3,7 +3,7 @@ import rasterio
 import numpy as np
 import tempfile
 
-def get_mean_cloud_top_height(lat, lon):
+def get_cloud_top_height(lat, lon):
     bbox_size = 0.05
     width = 64
     height = 64
