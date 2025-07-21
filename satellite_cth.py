@@ -36,7 +36,7 @@ def get_cloud_top_height(lat, lon):
 
             if valid_data.size == 0:
                 return None
-            scaled_data = valid_data.astype(np.float64) * 80
+            scaled_data = (valid_data.astype(np.float64) * 61.7) + 258.3 # do NOT use 320 - that is not correct as BIDMAS, 258.3 is an offset!
             print("Valid Cloud Top Heights (scaled, one per line):")
             return float(np.max(scaled_data))
 
