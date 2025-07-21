@@ -3,7 +3,7 @@ import rasterio
 import numpy as np
 import tempfile
 
-def get_cloud_top_height(lat, lon):
+def get_mean_cloud_top_height(lat, lon):
     bbox_size = 0.05
     width = 64
     height = 64
@@ -32,6 +32,7 @@ def get_cloud_top_height(lat, lon):
 
         with rasterio.open(tmp.name) as src:
             data = src.read(1)
-            row, col = src.index(lon, lat)
-            value = data[row, col]
-            return float(value * 80) if np.isfinite(value) else None
+            valid_data = data[np.isfinite(data)]
+            if valid_data.size == 0:
+                return None  # No valid data
+            return float(np.mean(valid_data) * 80)  # Scale factor of 80
