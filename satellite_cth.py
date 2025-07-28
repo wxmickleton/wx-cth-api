@@ -29,5 +29,6 @@ def get_cloud_top_height(lat, lon): # 100 sq miles @ mid lats so 10 miles n,e,s,
 
         with rasterio.open(tmp.name) as src:
             data = src.read(1)
-            scaled_data = (data.astype(np.float64) * 61.7) + 258.3 # do NOT use 320 - that is not correct as BIDMAS, 258.3 is an offset!
+            valid_data = data[(data > 0) & (data < 255)]
+            scaled_data = (valid_data.astype(np.float64) * 61.7) + 258.3 # do NOT use 320 - that is not correct as BIDMAS, 258.3 is an offset!
             return float(np.max(scaled_data))
