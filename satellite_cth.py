@@ -1,7 +1,7 @@
 import requests
-import rasterio
+from PIL import Image
+from io import BytesIO
 import numpy as np
-import tempfile
 
 def get_cloud_top_height(lat, lon): # 100 sq miles @ mid lats so 10 miles n,e,s,w aka metar vc
     rgb_colors = [
