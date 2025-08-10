@@ -3,7 +3,7 @@ from PIL import Image
 from io import BytesIO
 import numpy as np
 
-def get_cloud_top_height(lat, lon): # 100 sq miles @ mid lats so 10 miles n,e,s,w aka metar vc
+def get_cloud_top_height(lat, lon):  # 100 sq miles @ mid lats so 10 miles n,e,s,w aka metar vc
     rgb_colors = [
         (0, 0, 0), (26, 11, 0), (53, 23, 0), (79, 35, 0), (105, 45, 5),
         (122, 36, 42), (140, 27, 79), (157, 18, 117), (174, 9, 154), (192, 0, 192),
@@ -20,18 +20,20 @@ def get_cloud_top_height(lat, lon): # 100 sq miles @ mid lats so 10 miles n,e,s,
         (205, 205, 205), (218, 218, 218), (230, 230, 230), (243, 243, 243),
         (255, 255, 255),
     ]
-    
-    def find_nearest_rgb(color, palette):
+    WHITE = (255, 255, 255)
+    PALETTE_NO_WHITE = [c for c in rgb_colors if c != WHITE]  # <-- exclude white from matching
+
+    def find_nearest_rgb(color, palette=PALETTE_NO_WHITE):  # <-- default: no white
         distances = [np.sum((np.array(color) - np.array(p))**2) for p in palette]
         return palette[np.argmin(distances)]
-    
+
     width = 256
     height = 256
     south = lat - 0.145
     north = lat + 0.145
     west = lon - 0.205
     east = lon + 0.205
-    
+
     wms_url = (
         "https://view.eumetsat.int/geoserver/ows?"
         f"service=WMS&request=GetMap&version=1.3.0"
@@ -41,26 +43,35 @@ def get_cloud_top_height(lat, lon): # 100 sq miles @ mid lats so 10 miles n,e,s,
         f"&bbox={south},{west},{north},{east}"
         f"&width={width}&height={height}"
     )
-    
+
     response = requests.get(wms_url)
     image = Image.open(BytesIO(response.content)).convert("RGB")
-    
+
     pixels = list(image.getdata())
     unique_colors = set(pixels)
-    
+
     color_map = {}
     for color in unique_colors:
-        if color in rgb_colors and color != (255, 255, 255):
+        if color == WHITE:
+            continue  # <-- drop pure white completely
+        if color in rgb_colors:
             color_map[color] = color
         else:
-            nearest = find_nearest_rgb(color, rgb_colors)
+            nearest = find_nearest_rgb(color)  # <-- won't ever return white
             color_map[color] = nearest
-    
+
     used_colors = set(color_map.values())
-    
+    if WHITE in used_colors:
+        used_colors.remove(WHITE)  # <-- defensive double-check
+
+    if not used_colors:
+        return 0  # <-- nothing but no-data/clear; pick your sentinel
+
     deepest_index = -1
     for idx, color in enumerate(rgb_colors):
+        if color == WHITE:
+            continue  # <-- never let white set deepest_index
         if color in used_colors:
             deepest_index = idx + 1
-            
-    return((deepest_index * 245) + 320)
+
+    return (deepest_index * 245) + 320
