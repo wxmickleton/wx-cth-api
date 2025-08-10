@@ -50,7 +50,7 @@ def get_cloud_top_height(lat, lon): # 100 sq miles @ mid lats so 10 miles n,e,s,
     
     color_map = {}
     for color in unique_colors:
-        if color in rgb_colors and if color != (255, 255, 255):
+        if color in rgb_colors and color != (255, 255, 255):
             color_map[color] = color
         else:
             nearest = find_nearest_rgb(color, rgb_colors)
